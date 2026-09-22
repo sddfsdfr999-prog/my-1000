@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мои 1000 ₽</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f4f7fb;color:#172033}
+.wrap{max-width:760px;margin:auto;padding:20px}.card{background:white;border-radius:20px;padding:20px;margin:14px 0;box-shadow:0 5px 20px #17203312}
+h1{margin:4px 0 8px;font-size:32px}h2{margin-top:0}.muted{color:#667085}
+.balance{font-size:38px;font-weight:800}.bar{height:16px;background:#e8edf5;border-radius:99px;overflow:hidden}.fill{height:100%;background:#4f7cff;width:0%;transition:.3s}
+.task{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid #e5e9f0;border-radius:15px;padding:14px;margin:10px 0}
+.task small{display:block;color:#667085}.price{font-weight:800;white-space:nowrap}
+button{border:0;border-radius:12px;padding:10px 14px;background:#4f7cff;color:white;font-weight:700;cursor:pointer}
+button.secondary{background:#edf2ff;color:#3159c7}button.danger{background:#fff0f0;color:#c0392b}
+button:disabled{opacity:.5;cursor:not-allowed}.hidden{display:none}
+input{padding:12px;border:1px solid #d7dde8;border-radius:12px;width:100%;margin:6px 0 10px;font-size:16px}
+label{display:block;margin:8px 0}.check{display:flex;gap:9px;align-items:flex-start}.check input{width:auto;margin-top:4px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}nav button{background:#eaf0ff;color:#3159c7}
+.notice{padding:12px;border-radius:12px;background:#fff7df}.ok{background:#eaf9ef;color:#176b35}
+footer{font-size:13px;color:#667085;text-align:center;margin:25px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="card">
+    <h1>💰 Мои 1000 ₽</h1>
+    <p class="muted">Домашние задания и награды от родителей</p>
+    <nav>
+      <button onclick="show('home')">Главная</button>
+      <button onclick="show('parent')">Родитель</button>
+      <button onclick="show('privacy')">Политика</button>
+    </nav>
+  </header>
+
+  <main id="home">
+    <section class="card">
+      <div class="muted">Накоплено</div>
+      <div class="balance"><span id="balance">0</span> ₽</div>
+      <div class="muted"><span id="percent">0</span>% от цели</div>
+      <div class="bar"><div class="fill" id="fill"></div></div>
+    </section>
+
+    <section class="card">
+      <h2>📋 Задания</h2>
+      <div id="tasks"></div>
+    </section>
+
+    <section class="card">
+      <h2>🔔 На проверке</h2>
+      <div id="pending" class="muted">Пока ничего нет.</div>
+    </section>
+  </main>
+
+  <main id="parent" class="hidden">
+    <section class="card">
+      <h2>👨‍👩‍👦 Родительская панель</h2>
+      <div class="notice">Это демо-версия. Она хранит данные только в этом браузере. Для настоящих аккаунтов и синхронизации между устройствами позже подключим серверную базу данных.</div>
+      <h3>Добавить задание</h3>
+      <input id="newTitle" placeholder="Например: Убрать комнату">
+      <input id="newPrice" type="number" min="1" placeholder="Сколько рублей">
+      <button onclick="addTask()">Добавить</button>
+      <h3>Запросы на подтверждение</h3>
+      <div id="approvals"></div>
+      <h3>Сбросить демо</h3>
+      <button class="danger" onclick="resetDemo()">Удалить все данные</button>
+    </section>
+
+    <section class="card">
+      <h2>🔐 Родительский доступ</h2>
+      <p class="muted">В этой первой версии это только интерфейс. Не используйте здесь настоящий пароль или банковские данные.</p>
+      <input id="parentCode" type="password" placeholder="Придумайте код позже">
+    </section>
+  </main>
+
+  <main id="privacy" class="hidden">
+    <section class="card">
+      <h2>🔒 Политика конфиденциальности</h2>
+      <p>Эта демонстрационная версия сайта не отправляет данные на сервер. Задания, баланс и настройки сохраняются только в хранилище браузера на данном устройстве.</p>
+      <p>Не вводите сюда адрес, номер телефона, паспортные данные, банковские реквизиты, пароли от других сервисов или другие чувствительные сведения.</p>
+      <p>Если сайт будет опубликован с аккаунтами и сервером, перед запуском такой версии нужно отдельно настроить настоящую политику конфиденциальности и правила обработки данных с участием родителя/законного представителя.</p>
+      <h3>Согласие</h3>
+      <label class="check"><input id="agree" type="checkbox" onchange="setAgree()"> <span>Я прочитал(а) и согласен(на) с этой Политикой конфиденциальности.</span></label>
+      <div id="agreeStatus" class="muted"></div>
+    </section>
+  </main>
+
+  <footer>«Мои 1000 ₽» — учебный проект. Реальные выплаты выполняются родителями.</footer>
+</div>
+
+<script>
+const KEY='my1000demo_v1';
+const initial=[
+ {id:1,title:'Убрать комнату',price:100,status:'new'},
+ {id:2,title:'Сделать уроки',price:150,status:'new'},
+ {id:3,title:'Вынести мусор',price:50,status:'new'}
+];
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||{balance:0,tasks:initial,agreed:false};
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function money(n){return new Intl.NumberFormat('ru-RU').format(n)}
+function show(id){
+ ['home','parent','privacy'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));
+ render();
+}
+function render(){
+ document.getElementById('balance').textContent=money(data.balance);
+ let p=Math.min(100,Math.round(data.balance/1000*100));
+ document.getElementById('percent').textContent=p;
+ document.getElementById('fill').style.width=p+'%';
+ const tasks=document.getElementById('tasks');
+ tasks.innerHTML='';
+ data.tasks.forEach(t=>{
+   const el=document.createElement('div');el.className='task';
+   let action=t.status==='new'?`<button onclick="requestTask(${t.id})">Выполнил</button>`:
+     t.status==='pending'?`<button disabled>На проверке</button>`:
+     `<button class="secondary" disabled>Подтверждено</button>`;
+   el.innerHTML=`<div><b>${escapeHtml(t.title)}</b><small>${t.status==='pending'?'Ждёт подтверждения родителя':t.status==='done'?'Подтверждено родителем':'Можно выполнить'}</small></div><div class="price">+${money(t.price)} ₽<br>${action}</div>`;
+   tasks.appendChild(el);
+ });
+ const pend=data.tasks.filter(t=>t.status==='pending');
+ document.getElementById('pending').innerHTML=pend.length?pend.map(t=>`<div class="task"><span>${escapeHtml(t.title)}</span><b>+${money(t.price)} ₽</b></div>`).join(''):'Пока ничего нет.';
+ const app=document.getElementById('approvals');
+ app.innerHTML=pend.length?pend.map(t=>`<div class="task"><div><b>${escapeHtml(t.title)}</b><small>+${money(t.price)} ₽</small></div><button onclick="approve(${t.id})">Подтвердить</button></div>`).join(''):'Нет запросов.';
+ document.getElementById('agree').checked=!!data.agreed;
+ document.getElementById('agreeStatus').textContent=data.agreed?'Согласие сохранено на этом устройстве.':'Галочка пока не установлена.';
+}
+function requestTask(id){let t=data.tasks.find(x=>x.id===id);if(t)t.status='pending';save()}
+function approve(id){let t=data.tasks.find(x=>x.id===id);if(t&&t.status==='pending'){t.status='done';data.balance+=t.price;save()}}
+function addTask(){
+ let title=document.getElementById('newTitle').value.trim(),price=Number(document.getElementById('newPrice').value);
+ if(!title||!price||price<1)return alert('Введите название и сумму.');
+ data.tasks.push({id:Date.now(),title,price,status:'new'});
+ document.getElementById('newTitle').value='';document.getElementById('newPrice').value='';save();
+}
+function setAgree(){data.agreed=document.getElementById('agree').checked;localStorage.setItem(KEY,JSON.stringify(data));render()}
+function resetDemo(){if(confirm('Удалить все данные демо?')){localStorage.removeItem(KEY);location.reload()}}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+render();
+</script>
+</body>
+</html>
